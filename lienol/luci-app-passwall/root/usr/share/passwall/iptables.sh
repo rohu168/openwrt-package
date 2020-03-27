@@ -252,6 +252,7 @@ add_firewall_rule() {
 	$ipt_n -N PSW_ACL
 	
 	$ipt_n -N PSW_OUTPUT
+	$ipt_n -A PSW_OUTPUT -m owner --uid-owner $(id -u nobody) -j RETURN
 	$ipt_n -A PSW_OUTPUT $(dst $IPSET_LANIPLIST) -j RETURN
 	$ipt_n -A PSW_OUTPUT $(dst $IPSET_VPSIPLIST) -j RETURN
 	$ipt_n -A PSW_OUTPUT $(dst $IPSET_WHITELIST) -j RETURN
@@ -263,6 +264,7 @@ add_firewall_rule() {
 	$ipt_m -N PSW_ACL
 	
 	$ipt_m -N PSW_OUTPUT
+	$ipt_m -A PSW_OUTPUT -m owner --uid-owner $(id -u nobody) -j RETURN
 	$ipt_m -A PSW_OUTPUT $(dst $IPSET_LANIPLIST) -j RETURN
 	$ipt_m -A PSW_OUTPUT $(dst $IPSET_VPSIPLIST) -j RETURN
 	$ipt_m -A PSW_OUTPUT $(dst $IPSET_WHITELIST) -j RETURN

@@ -23,6 +23,9 @@ API_GEN_V2RAY=$LUA_API_PATH/gen_v2ray.lua
 API_GEN_V2RAY_BALANCING=$LUA_API_PATH/gen_v2ray_balancing.lua
 API_GEN_V2RAY_SHUNT=$LUA_API_PATH/gen_v2ray_shunt.lua
 
+CLASH_CONFIG_PATH=/etc/clash
+CLASH_CONFIG_FILE=$CLASH_CONFIG_PATH/config.yaml
+
 echolog() {
 	local d="$(date "+%Y-%m-%d %H:%M:%S")"
 	echo -e "$d: $1" >>$LOG_FILE
@@ -127,11 +130,21 @@ ln_start_bin() {
 		local bin=$2
 		local cmd=$3
 		if [ -n "${TMP_BIN_PATH}/$bin" -a -f "${TMP_BIN_PATH}/$bin" ];then
-			${TMP_BIN_PATH}/$bin $cmd >/dev/null 2>&1 &
+			if [ "$bin" == "clash" ]; then
+				echolog "running clash as nobody"
+				sudo -u nobody ${TMP_BIN_PATH}/$bin $cmd >/dev/null 2>&1 &
+			else
+				${TMP_BIN_PATH}/$bin $cmd >/dev/null 2>&1 &
+			fi
 		else
 			if [ -n "$file" -a -f "$file" ];then
 				ln -s $file ${TMP_BIN_PATH}/$bin
-				${TMP_BIN_PATH}/$bin $cmd >/dev/null 2>&1 &
+				if [ "$bin" == "clash" ]; then
+					echolog "running clash as nobody"
+					sudo -u nobody ${TMP_BIN_PATH}/$bin $cmd >/dev/null 2>&1 &
+				else
+					${TMP_BIN_PATH}/$bin $cmd >/dev/null 2>&1 &
+				fi
 			else
 				echolog "找不到$bin主程序，无法启动！"
 			fi
@@ -324,6 +337,11 @@ gen_start_config() {
 				}
 			fi
 			ln_start_bin $(find_bin ss-local) ss-local_socks_$5 "-c $config_file -b $bind -u $plugin_params" 
+		elif [ "$type" == "clash" ]; then
+			kill_all clash
+			chmod 777 $CLASH_CONFIG_PATH
+			sed -i "/^ \{0,\}socks-port:/c\socks-port: $local_port" "$CLASH_CONFIG_FILE"
+			ln_start_bin $(find_bin clash) clash "-d $CLASH_CONFIG_PATH $config_file"
 		fi
 	fi
 
@@ -380,6 +398,10 @@ gen_start_config() {
 				}
 			fi
 			ln_start_bin $(find_bin ss-redir) ss-redir_udp_$5 "-c $config_file -U $plugin_params"
+		elif [ "$type" == "clash" ]; then
+			kill_all clash
+			chmod 777 $CLASH_CONFIG_PATH
+			ln_start_bin $(find_bin clash) clash "-d $CLASH_CONFIG_PATH $config_file"
 		fi
 	fi
 
@@ -462,6 +484,11 @@ gen_start_config() {
 					}
 					ln_start_bin $(config_t_get global_app brook_file $(find_bin brook)) brook_tcp_$5 "tproxy -l 0.0.0.0:$local_port -s $server_ip:$port -p $(config_n_get $node password)"
 				fi
+			elif [ "$type" == "clash" ]; then
+				kill_all clash
+				chmod 777 $CLASH_CONFIG_PATH
+				sed -i "/^ \{0,\}redir-port:/c\redir-port: $local_port" "$CLASH_CONFIG_FILE"
+				ln_start_bin $(find_bin clash) clash "-d $CLASH_CONFIG_PATH $config_file"
 			fi
 		fi
 	fi
@@ -494,6 +521,12 @@ start_redir() {
 			local config_file=$TMP_PATH/${1}_${i}.json
 			eval current_port=\$${1}_${2}_PORT$i
 			local port=$(echo $(get_new_port $current_port $3))
+			if [ "$TYPE" == "clash" ]; then
+				if [ "$1" == "UDP" ]; then 
+					port=$(sed -n -e 's/^redir-port:[ \t]*//p' $CLASH_CONFIG_FILE)
+					echolog "Clash for udp use redir port $port"
+				fi
+			fi
 			eval ${1}_${2}$i=$port
 			gen_start_config $node $port $1 $config_file $i
 			#eval ip=\$${1}_NODE${i}_IP

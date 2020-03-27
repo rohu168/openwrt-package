@@ -21,7 +21,9 @@ uci:foreach(appname, "nodes", function(e)
     local address = e.address
     if address == nil then address = "" end
     -- if (type == "V2ray_balancing" or type == "V2ray_shunt") or (address:match("[\u4e00-\u9fa5]") and address:find("%.") and address:sub(#address) ~= ".") then
-    if type and address and e.remarks then
+    if type == "clash" then
+        n[e[".name"]] = "Clash: %s" % {e.remarks}
+    elseif type and address and e.remarks then
         if e.use_kcp and e.use_kcp == "1" then
             n[e[".name"]] = "%s+%s：[%s] %s" %
                                 {translate(type), "Kcptun", e.remarks, address}

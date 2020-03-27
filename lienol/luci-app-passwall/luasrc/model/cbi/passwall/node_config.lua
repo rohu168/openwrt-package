@@ -2,6 +2,7 @@ local d = require "luci.dispatcher"
 local ipkg = require("luci.model.ipkg")
 local uci = require"luci.model.uci".cursor()
 local api = require "luci.model.cbi.passwall.api.api"
+local fs = require "nixio.fs"
 
 local appname = "passwall"
 
@@ -518,5 +519,30 @@ type.validate = function(self, value)
 end
 
 v2ray_transport.validate = function(self, value) return value end
+
+if is_finded("clash") then
+    local has_clash = false
+    uci:foreach(appname, "nodes", function(e)
+        if e.type == "clash" and e['.name'] ~= arg[1] then
+            has_clash = true
+        end
+    end)
+
+    if not has_clash then
+        type:value("clash", translate("Clash"))
+
+        local clash_config_dir = "/etc/clash"
+        local clash_config_file = clash_config_dir .. "/config.yaml"
+        clash_config = s:option(TextValue, "clash_config", translate("Clash Config"), translate("Clash Config file stored in /etc/clash/. You need to use other dns to download GeoIP.db in the 1st run."))
+        clash_config:depends("type", "clash")
+        clash_config.rows = 25
+        clash_config.wrap = "off"
+        clash_config.cfgvalue = function(self, section) return fs.readfile(clash_config_file) or "" end
+        clash_config.write = function(self, section, value)
+            fs.mkdir(clash_config_dir, "777")
+            fs.writefile(clash_config_file, value:gsub("\r\n", "\n"))
+        end
+    end
+end
 
 return m
