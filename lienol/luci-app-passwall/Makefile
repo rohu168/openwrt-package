@@ -120,6 +120,8 @@ define Package/$(PKG_NAME)/conffiles
 /usr/share/passwall/rules/blacklist_ip
 /usr/share/passwall/rules/whitelist_host
 /usr/share/passwall/rules/whitelist_ip
+/etc/clash
+/usr/bin/clash
 endef
 
 define Package/$(PKG_NAME)/install
