@@ -1,0 +1,48 @@
+name: merge_upstream
+
+on: 
+    push:
+        branches: 
+          - master
+        paths:
+          - '.github/workflows/merge_upstream.yml'
+    schedule:
+        - cron: '0 2-9 * * *'
+
+jobs:
+    merge:
+        runs-on: ubuntu-latest
+        steps:                    
+            - name: Checkout
+              uses: actions/checkout@master
+              with:
+                ref: master
+            
+            - name: Checkout Upstream Branch
+              run: |
+                git config --global user.email "action@github.com" && git config --global user.name "GitHub Action"
+                git fetch --unshallow
+                git checkout -b upstream origin/upstream
+                origin_upstream_head=$(git log -1 --pretty=format:"%h")
+                git remote add upstream https://github.com/Lienol/openwrt-package.git
+                git fetch upstream
+                git pull upstream master
+                new_upstream_head=$(git log -1 --pretty=format:"%h")
+                echo "upstream $origin_upstream_head => $new_upstream_head"
+                if [ "$origin_upstream_head" == "$new_upstream_head" ]; then
+                  echo "upstream no change"
+                else
+                  echo "push upstream to orgin"
+                  git push origin upstream:upstream
+                fi
+            
+            - name: Merge
+              run: |
+                if git merge-base --is-ancestor upstream master; then
+                  echo "no need to merge"
+                else
+                  git checkout master
+                  git merge --no-edit upstream
+                  git push origin master
+                fi
+                
