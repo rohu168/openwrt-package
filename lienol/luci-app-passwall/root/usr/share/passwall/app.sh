@@ -340,8 +340,7 @@ gen_start_config() {
 			ln_start_bin $(find_bin ss-local) ss-local_socks_$5 "-c $config_file -b $bind -u $plugin_params" 
 		elif [ "$type" == "clash" ]; then
 			kill_all clash
-			chmod 777 $CLASH_CONFIG_PATH
-			chmod 666 $CLASH_CONFIG_PATH/*
+			chmod -R 777 $CLASH_CONFIG_PATH
 			sed -i "/^ \{0,\}socks-port:/c\socks-port: $local_port" "$CLASH_CONFIG_FILE"
 			ln_start_bin $(find_bin clash) clash "-d $CLASH_CONFIG_PATH $config_file"
 		fi
@@ -404,8 +403,7 @@ gen_start_config() {
 			ln_start_bin $(find_bin ss-redir) ss-redir_udp_$5 "-c $config_file -U $plugin_params"
 		elif [ "$type" == "clash" ]; then
 			kill_all clash
-			chmod 777 $CLASH_CONFIG_PATH
-			chmod 666 $CLASH_CONFIG_PATH/*
+			chmod -R 777 $CLASH_CONFIG_PATH
 			ln_start_bin $(find_bin clash) clash "-d $CLASH_CONFIG_PATH $config_file"
 		fi
 	fi
@@ -491,8 +489,7 @@ gen_start_config() {
 				fi
 			elif [ "$type" == "clash" ]; then
 				kill_all clash
-				chmod 777 $CLASH_CONFIG_PATH
-			    chmod 666 $CLASH_CONFIG_PATH/*
+				chmod -R 777 $CLASH_CONFIG_PATH
 				sed -i "/^ \{0,\}redir-port:/c\redir-port: $local_port" "$CLASH_CONFIG_FILE"
 				ln_start_bin $(find_bin clash) clash "-d $CLASH_CONFIG_PATH $config_file"
 			fi
